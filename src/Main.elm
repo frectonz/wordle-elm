@@ -1,17 +1,34 @@
 module Main exposing (..)
 
+import Board
+    exposing
+        ( Board
+        , Letter(..)
+        , addInputWordToBoard
+        , boardToList
+        , findFirstEmptyRow
+        , initalBoard
+        )
 import Browser
 import Browser.Events exposing (onKeyUp)
 import Html exposing (Html, button, div, h1, header, text)
 import Html.Attributes exposing (class)
 import Html.Events as HtmlEvents
+import InputWord
+    exposing
+        ( InputChar(..)
+        , InputWord
+        , addCharToInputWord
+        , backspaceInputtWord
+        , initialInputWord
+        , isInputWordCompleted
+        , isInputWordValid
+        )
 import Json.Decode as Decode
 import List.Extra as ListExtra
 import Time
 import Utils exposing (flatten2D)
-import Vector5 exposing (Vector5)
-import Vector6 exposing (Vector6)
-import Words exposing (dictionary)
+import Vector5
 
 
 main : Program () Model Msg
@@ -26,47 +43,25 @@ main =
 
 type alias Model =
     { board : Board
-    , currentWord : CurrentWord
-    , correctWord : String
+    , inputWord : InputWord
+    , secretWord : String
     , displayToast : Bool
     }
 
 
-type alias Board =
-    Vector6 Row
-
-
-type alias Row =
-    Vector5 Letter
-
-
-type Letter
-    = Misplaced Char
-    | Correct Char
-    | Incorrect Char
-    | Empty
-
-
-type alias CurrentWord =
-    Vector5 InputChar
-
-
-type InputChar
-    = Filled Char
-    | Unfilled
-
-
 type Msg
     = Character Char
-    | Control String
     | CloseToast Time.Posix
+    | Backspace
+    | SubmitInputWord
+    | NoOp
 
 
 init : flags -> ( Model, Cmd Msg )
 init _ =
-    ( { board = Vector6.repeat (Vector5.repeat Empty)
-      , currentWord = Vector5.repeat Unfilled
-      , correctWord = "cigar"
+    ( { board = initalBoard
+      , inputWord = initialInputWord
+      , secretWord = "cigar"
       , displayToast = False
       }
     , Cmd.none
@@ -90,144 +85,69 @@ toKey : String -> Msg
 toKey string =
     case String.uncons string of
         Just ( char, "" ) ->
-            Character char
+            if char == ' ' then
+                NoOp
+
+            else
+                Character (Char.toUpper char)
 
         _ ->
-            Control string
+            if string == "Backspace" then
+                Backspace
+
+            else if string == "Enter" then
+                SubmitInputWord
+
+            else
+                NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
         CloseToast _ ->
             ( { model | displayToast = False }, Cmd.none )
 
         Character char ->
-            if char /= ' ' then
-                model.currentWord
-                    |> Vector5.toIndexedList
-                    |> ListExtra.find (\( _, x ) -> x == Unfilled)
-                    |> Maybe.map Tuple.first
-                    |> Maybe.map
-                        (\i ->
-                            ( { model
-                                | currentWord =
-                                    model.currentWord
-                                        |> Vector5.set i (Filled (Char.toLocaleUpper char))
-                              }
-                            , Cmd.none
-                            )
+            ( { model
+                | inputWord = addCharToInputWord char model.inputWord
+              }
+            , Cmd.none
+            )
+
+        Backspace ->
+            ( { model
+                | inputWord = backspaceInputtWord model.inputWord
+              }
+            , Cmd.none
+            )
+
+        SubmitInputWord ->
+            if isInputWordValid model.inputWord then
+                case findFirstEmptyRow model.board of
+                    Just index ->
+                        ( { model
+                            | board = addInputWordToBoard model.inputWord model.secretWord model.board index
+                            , inputWord = initialInputWord
+                          }
+                        , Cmd.none
                         )
-                    |> Maybe.withDefault
+
+                    Nothing ->
+                        --game over
                         ( model, Cmd.none )
 
             else
-                ( model, Cmd.none )
-
-        Control control ->
-            case control of
-                "Backspace" ->
-                    model.currentWord
-                        |> Vector5.toIndexedList
-                        |> List.filter (\( _, x ) -> x /= Unfilled)
-                        |> ListExtra.last
-                        |> Maybe.map Tuple.first
-                        |> Maybe.map
-                            (\i ->
-                                ( { model
-                                    | currentWord =
-                                        model.currentWord
-                                            |> Vector5.set i Unfilled
-                                  }
-                                , Cmd.none
-                                )
-                            )
-                        |> Maybe.withDefault
-                            ( model
-                            , Cmd.none
-                            )
-
-                "Enter" ->
-                    let
-                        completed =
-                            model.currentWord
-                                |> Vector5.toList
-                                |> List.all (\x -> x /= Unfilled)
-
-                        word =
-                            model.currentWord
-                                |> Vector5.map
-                                    (\l ->
-                                        case l of
-                                            Filled char ->
-                                                String.fromChar char
-
-                                            Unfilled ->
-                                                ""
-                                    )
-                                |> Vector5.foldr (++) ""
-                                |> String.toLower
-
-                        valid =
-                            List.member word dictionary
-                    in
-                    if completed && valid then
-                        let
-                            boardList =
-                                model.board
-                                    |> Vector6.map Vector5.toList
-                                    |> Vector6.toIndexedList
-
-                            rowIndex =
-                                boardList
-                                    |> ListExtra.find
-                                        (\( _, row ) ->
-                                            row
-                                                |> List.all (\l -> l == Empty)
-                                        )
-                                    |> Maybe.map Tuple.first
-
-                            newRow =
-                                List.map2
-                                    (\w l ->
-                                        if w == l then
-                                            Correct w
-
-                                        else
-                                            let
-                                                exists =
-                                                    List.any (\x -> x == w) (String.toList model.correctWord)
-                                            in
-                                            if exists then
-                                                Misplaced w
-
-                                            else
-                                                Incorrect w
-                                    )
-                                    (String.toList word)
-                                    (String.toList model.correctWord)
-
-                            ( _, newRowVector ) =
-                                Vector5.fromListWithDefault Empty newRow
-                        in
-                        case rowIndex of
-                            Just index ->
-                                ( { model
-                                    | board = Vector6.set index newRowVector model.board
-                                    , currentWord = Vector5.repeat Unfilled
-                                  }
-                                , Cmd.none
-                                )
-
-                            Nothing ->
-                                --game over
-                                ( model, Cmd.none )
-
-                    else
-                        ( { model | displayToast = not valid }, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+                ( { model
+                    | displayToast =
+                        isInputWordCompleted model.inputWord
+                            && not (isInputWordValid model.inputWord)
+                  }
+                , Cmd.none
+                )
 
 
 view : Model -> Html Msg
@@ -251,21 +171,17 @@ viewBoard : Model -> Html Msg
 viewBoard model =
     let
         boardList =
-            model.board
-                |> Vector6.map Vector5.toList
-                |> Vector6.toList
+            boardToList model.board
 
         previous =
             boardList
                 |> ListExtra.takeWhile
-                    (\row ->
-                        row |> List.all (\x -> x /= Empty)
-                    )
+                    (List.all (\x -> x /= Empty))
                 |> flatten2D
                 |> List.map viewLetter
 
         currentRowHtml =
-            model.currentWord
+            model.inputWord
                 |> Vector5.toList
                 |> List.map
                     (\x ->
@@ -351,11 +267,6 @@ viewToast displayToast =
         [ text "Not in word list" ]
 
 
-letters : List String
-letters =
-    [ "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" ]
-
-
 viewKeyboard : Board -> Html Msg
 viewKeyboard board =
     div [ class "w-[600px] mx-auto grid grid-rows-3 gap-3" ]
@@ -387,7 +298,7 @@ viewKeyboard board =
                 |> List.map (viewKeyboardLetter board)
             )
         , div [ class "grid grid-cols-9 gap-2" ]
-            ([ ( "ENTER", Control "Enter" )
+            ([ ( "ENTER", SubmitInputWord )
              , ( "Z", Character 'Z' )
              , ( "X", Character 'X' )
              , ( "C", Character 'C' )
@@ -395,7 +306,7 @@ viewKeyboard board =
              , ( "B", Character 'B' )
              , ( "N", Character 'N' )
              , ( "M", Character 'M' )
-             , ( "DEL", Control "Backspace" )
+             , ( "DEL", Backspace )
              ]
                 |> List.map (viewKeyboardLetter board)
             )
@@ -407,8 +318,7 @@ viewKeyboardLetter board ( letter, msg ) =
     let
         t =
             board
-                |> Vector6.map Vector5.toList
-                |> Vector6.toList
+                |> boardToList
                 |> flatten2D
                 |> List.foldl
                     (\cell acc ->
