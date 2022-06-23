@@ -1,14 +1,12 @@
 module Main exposing (..)
 
 import Browser
-import Browser.Events exposing (onClick, onKeyUp)
+import Browser.Events exposing (onKeyUp)
 import Html exposing (Html, button, div, h1, header, text)
 import Html.Attributes exposing (class)
 import Html.Events as HtmlEvents
 import Json.Decode as Decode
 import List.Extra as ListExtra
-import Svg exposing (svg)
-import Svg.Attributes as SvgAttr exposing (path)
 import Time
 import Utils exposing (flatten2D)
 import Vector5 exposing (Vector5)
@@ -238,7 +236,7 @@ view model =
         [ viewHeader
         , viewBoard model
         , viewToast model.displayToast
-        , viewKeyboard
+        , viewKeyboard model.board
         ]
 
 
@@ -358,8 +356,8 @@ letters =
     [ "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z" ]
 
 
-viewKeyboard : Html Msg
-viewKeyboard =
+viewKeyboard : Board -> Html Msg
+viewKeyboard board =
     div [ class "w-[600px] mx-auto grid grid-rows-3 gap-3" ]
         [ div [ class "grid grid-cols-10 gap-2" ]
             ([ ( "Q", Character 'Q' )
@@ -373,7 +371,7 @@ viewKeyboard =
              , ( "O", Character 'O' )
              , ( "P", Character 'P' )
              ]
-                |> List.map viewKeyboardLetter
+                |> List.map (viewKeyboardLetter board)
             )
         , div [ class "grid grid-cols-9 gap-2 px-4" ]
             ([ ( "A", Character 'A' )
@@ -386,7 +384,7 @@ viewKeyboard =
              , ( "K", Character 'K' )
              , ( "L", Character 'L' )
              ]
-                |> List.map viewKeyboardLetter
+                |> List.map (viewKeyboardLetter board)
             )
         , div [ class "grid grid-cols-9 gap-2" ]
             ([ ( "ENTER", Control "Enter" )
@@ -399,15 +397,64 @@ viewKeyboard =
              , ( "M", Character 'M' )
              , ( "DEL", Control "Backspace" )
              ]
-                |> List.map viewKeyboardLetter
+                |> List.map (viewKeyboardLetter board)
             )
         ]
 
 
-viewKeyboardLetter : ( String, Msg ) -> Html Msg
-viewKeyboardLetter ( letter, msg ) =
+viewKeyboardLetter : Board -> ( String, Msg ) -> Html Msg
+viewKeyboardLetter board ( letter, msg ) =
+    let
+        t =
+            board
+                |> Vector6.map Vector5.toList
+                |> Vector6.toList
+                |> flatten2D
+                |> List.foldl
+                    (\cell acc ->
+                        case cell of
+                            Empty ->
+                                acc
+
+                            Correct l ->
+                                if (l |> String.fromChar |> String.toUpper) == letter then
+                                    cell
+
+                                else
+                                    acc
+
+                            Incorrect l ->
+                                if (l |> String.fromChar |> String.toUpper) == letter then
+                                    cell
+
+                                else
+                                    acc
+
+                            Misplaced l ->
+                                if (l |> String.fromChar |> String.toUpper) == letter then
+                                    cell
+
+                                else
+                                    acc
+                    )
+                    Empty
+
+        bgColor =
+            case t of
+                Misplaced _ ->
+                    "bg-yellow-500 text-white"
+
+                Correct _ ->
+                    "bg-green-500 text-white"
+
+                Incorrect _ ->
+                    "bg-gray-500 text-white"
+
+                Empty ->
+                    "bg-white text-black"
+    in
     button
-        [ class "text-sm p-5 shadow-sm shadow-green-400 flex justify-center items-center rounded-xl"
+        [ class (bgColor ++ " text-sm p-5 shadow-sm shadow-green-400 flex justify-center items-center rounded-xl")
         , HtmlEvents.onClick msg
         ]
         [ text letter ]
