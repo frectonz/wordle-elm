@@ -1,3 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.iteration-one {
+  animation-iteration-count: 1;
+}
