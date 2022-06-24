@@ -112,11 +112,19 @@ update msg model =
             ( { model | displayToast = False }, Cmd.none )
 
         Character char ->
-            ( { model
-                | inputWord = addCharToInputWord char model.inputWord
-              }
-            , Cmd.none
-            )
+            let
+                gameCompleted =
+                    findFirstEmptyRow model.board == Nothing
+            in
+            if not gameCompleted then
+                ( { model
+                    | inputWord = addCharToInputWord char model.inputWord
+                  }
+                , Cmd.none
+                )
+
+            else
+                ( model, Cmd.none )
 
         Backspace ->
             ( { model
@@ -152,18 +160,20 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "w-screen h-screen font-mono" ]
-        [ viewHeader
-        , viewBoard model
+    div [ class "font-mono" ]
+        [ div [ class "w-screen h-screen flex flex-col items-start justify-between" ]
+            [ viewHeader
+            , viewBoard model
+            , viewKeyboard model.board
+            ]
         , viewToast model.displayToast
-        , viewKeyboard model.board
         ]
 
 
 viewHeader : Html Msg
 viewHeader =
-    header [ class "border-b border-black" ]
-        [ h1 [ class "text-3xl text-center py-4 font-bold" ] [ text "WORDLE" ]
+    header [ class "w-screen border-b border-green-500" ]
+        [ h1 [ class "text-4xl text-center py-4 font-bold text-green-500 text-shadow" ] [ text "WORDLE" ]
         ]
 
 
@@ -182,12 +192,25 @@ viewBoard model =
 
         currentRowHtml =
             model.inputWord
-                |> Vector5.toList
+                |> Vector5.toIndexedList
                 |> List.map
-                    (\x ->
-                        div [ class "text-4xl shadow-sm shadow-blue-400 flex justify-center items-center" ]
+                    (\( index, input ) ->
+                        let
+                            animationClass =
+                                Vector5.nextIndex index
+                                    |> Maybe.map (\nextIndex -> Vector5.get nextIndex model.inputWord == Unfilled && input /= Unfilled)
+                                    |> Maybe.withDefault (input /= Unfilled)
+                                    |> (\isLastInput ->
+                                            if isLastInput then
+                                                "animate-pop"
+
+                                            else
+                                                ""
+                                       )
+                        in
+                        div [ class ("bg-white text-2xl shadow-sm shadow-blue-400 flex justify-center items-center " ++ animationClass) ]
                             [ text
-                                (case x of
+                                (case input of
                                     Filled c ->
                                         String.fromChar c
 
@@ -207,9 +230,12 @@ viewBoard model =
                 |> List.map viewLetter
     in
     div
-        [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 w-[400px] h-[400px]"
+        [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 p-2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px]"
         ]
-        (previous ++ currentRowHtml ++ next)
+        (previous
+            ++ currentRowHtml
+            ++ next
+        )
 
 
 viewLetter : Letter -> Html Msg
@@ -227,11 +253,11 @@ viewLetter letter =
                     "bg-gray-500 text-white"
 
                 Empty ->
-                    "bg-white"
+                    "bg-white shadow-sm shadow-green-500"
     in
     div
         [ class
-            (bgColor ++ " text-2xl shadow-sm shadow-blue-400 flex justify-center items-center")
+            ("text-2xl flex justify-center items-center " ++ bgColor)
         ]
         [ text
             (case letter of
@@ -262,15 +288,15 @@ viewToast displayToast =
     in
     div
         [ class
-            (visible ++ " fixed top-[55vh] left-1/2 -translate-x-1/2 bg-gray-500 py-2 px-4 text-white rounded-lg shadow-lg")
+            ("fixed top-[55vh] left-1/2 -translate-x-1/2 bg-gray-500 py-2 px-4 text-white rounded-lg shadow-lg w-fit transition-all " ++ visible)
         ]
-        [ text "Not in word list" ]
+        [ text "NOT IN WORD LIST" ]
 
 
 viewKeyboard : Board -> Html Msg
 viewKeyboard board =
-    div [ class "w-[600px] mx-auto grid grid-rows-3 gap-3" ]
-        [ div [ class "grid grid-cols-10 gap-2" ]
+    div [ class "md:w-[600px] p-2 mx-auto mb-6 grid grid-rows-3 gap-3" ]
+        [ div [ class "grid grid-cols-10 sm:gap-2 gap-1" ]
             ([ ( "Q", Character 'Q' )
              , ( "W", Character 'W' )
              , ( "E", Character 'E' )
@@ -284,7 +310,7 @@ viewKeyboard board =
              ]
                 |> List.map (viewKeyboardLetter board)
             )
-        , div [ class "grid grid-cols-9 gap-2 px-4" ]
+        , div [ class "grid grid-cols-9 gap-2 sm:px-4 px-2" ]
             ([ ( "A", Character 'A' )
              , ( "S", Character 'S' )
              , ( "D", Character 'D' )
@@ -297,7 +323,7 @@ viewKeyboard board =
              ]
                 |> List.map (viewKeyboardLetter board)
             )
-        , div [ class "grid grid-cols-9 gap-2" ]
+        , div [ class "grid grid-cols-11 gap-2" ]
             ([ ( "ENTER", SubmitInputWord )
              , ( "Z", Character 'Z' )
              , ( "X", Character 'X' )
@@ -362,9 +388,16 @@ viewKeyboardLetter board ( letter, msg ) =
 
                 Empty ->
                     "bg-white text-black"
+
+        size =
+            if String.length letter == 1 then
+                "col-span-1"
+
+            else
+                "col-span-2"
     in
-    button
-        [ class (bgColor ++ " text-sm p-5 shadow-sm shadow-green-400 flex justify-center items-center rounded-xl")
+    div
+        [ class ("sm:text-sm text-xs md:p-5 p-3 shadow-sm shadow-green-500 flex justify-center items-center rounded-xl overflow-hidden pop-on-active active:scale-75 " ++ bgColor ++ " " ++ size)
         , HtmlEvents.onClick msg
         ]
         [ text letter ]
