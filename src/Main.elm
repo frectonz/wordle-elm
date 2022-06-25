@@ -31,6 +31,10 @@ import Utils exposing (flatten2D)
 import Vector5
 
 
+
+-- MAIN
+
+
 main : Program () Model Msg
 main =
     Browser.element
@@ -41,20 +45,23 @@ main =
         }
 
 
+
+-- PORTS
+
+
+port vibrate : () -> Cmd msg
+
+
+
+-- MODEL
+
+
 type alias Model =
     { board : Board
     , inputWord : InputWord
     , secretWord : String
     , displayToast : Bool
     }
-
-
-type Msg
-    = Character Char
-    | CloseToast
-    | Backspace
-    | SubmitInputWord
-    | NoOp
 
 
 init : flags -> ( Model, Cmd Msg )
@@ -68,45 +75,16 @@ init _ =
     )
 
 
-port vibrate : () -> Cmd msg
+
+-- UPDATE
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ onKeyUp keyDecoder
-        , if model.displayToast then
-            Time.every 2000 (\_ -> CloseToast)
-
-          else
-            Sub.none
-        ]
-
-
-keyDecoder : Decode.Decoder Msg
-keyDecoder =
-    Decode.map toKey (Decode.field "key" Decode.string)
-
-
-toKey : String -> Msg
-toKey string =
-    case String.uncons string of
-        Just ( char, "" ) ->
-            if char == ' ' then
-                NoOp
-
-            else
-                Character (Char.toUpper char)
-
-        _ ->
-            if string == "Backspace" then
-                Backspace
-
-            else if string == "Enter" then
-                SubmitInputWord
-
-            else
-                NoOp
+type Msg
+    = Character Char
+    | CloseToast
+    | Backspace
+    | SubmitInputWord
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -172,6 +150,52 @@ update msg model =
                 )
 
 
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.batch
+        [ onKeyUp keyDecoder
+        , if model.displayToast then
+            Time.every 2000 (\_ -> CloseToast)
+
+          else
+            Sub.none
+        ]
+
+
+keyDecoder : Decode.Decoder Msg
+keyDecoder =
+    Decode.map toKey (Decode.field "key" Decode.string)
+
+
+toKey : String -> Msg
+toKey string =
+    case String.uncons string of
+        Just ( char, "" ) ->
+            if char == ' ' then
+                NoOp
+
+            else
+                Character (Char.toUpper char)
+
+        _ ->
+            if string == "Backspace" then
+                Backspace
+
+            else if string == "Enter" then
+                SubmitInputWord
+
+            else
+                NoOp
+
+
+
+-- VIEW
+
+
 view : Model -> Html Msg
 view model =
     div [ class "font-mono" ]
@@ -222,7 +246,7 @@ viewBoard model =
                                                 ""
                                        )
                         in
-                        div [ class ("bg-white text-2xl shadow-sm shadow-blue-400 flex justify-center items-center " ++ animationClass) ]
+                        div [ class ("bg-white text-2xl shadow-sm shadow-green-500 flex justify-center items-center rounded-md " ++ animationClass) ]
                             [ text
                                 (case input of
                                     Filled c ->
@@ -244,7 +268,7 @@ viewBoard model =
                 |> List.map viewLetter
     in
     div
-        [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 p-2 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px]"
+        [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 p-2 w-[320px] h-[320px] sm:w-[400px] sm:h-[400px]"
         ]
         (previous
             ++ currentRowHtml
@@ -271,7 +295,7 @@ viewLetter letter =
     in
     div
         [ class
-            ("text-2xl flex justify-center items-center " ++ bgColor)
+            ("text-2xl flex justify-center items-center rounded-md " ++ bgColor)
         ]
         [ text
             (case letter of
@@ -288,23 +312,6 @@ viewLetter letter =
                     " "
             )
         ]
-
-
-viewToast : Bool -> Html Msg
-viewToast displayToast =
-    let
-        visible =
-            if displayToast then
-                "visible"
-
-            else
-                "hidden"
-    in
-    div
-        [ class
-            ("fixed top-[55vh] left-1/2 -translate-x-1/2 bg-gray-500 py-2 px-4 text-white rounded-lg shadow-lg w-fit transition-all " ++ visible)
-        ]
-        [ text "NOT IN WORD LIST" ]
 
 
 viewKeyboard : Board -> Html Msg
@@ -415,3 +422,20 @@ viewKeyboardLetter board ( letter, msg ) =
         , HtmlEvents.onClick msg
         ]
         [ text letter ]
+
+
+viewToast : Bool -> Html Msg
+viewToast displayToast =
+    let
+        visible =
+            if displayToast then
+                "visible"
+
+            else
+                "hidden"
+    in
+    div
+        [ class
+            ("fixed top-[55vh] left-1/2 -translate-x-1/2 bg-gray-500 py-2 px-4 text-white rounded-lg shadow-lg w-fit transition-all " ++ visible)
+        ]
+        [ text "NOT IN WORD LIST" ]
