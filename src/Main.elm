@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Board
     exposing
@@ -68,12 +68,15 @@ init _ =
     )
 
 
+port vibrate : () -> Cmd msg
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ onKeyUp keyDecoder
         , if model.displayToast then
-            Time.every 1000 (\_ -> CloseToast)
+            Time.every 2000 (\_ -> CloseToast)
 
           else
             Sub.none
@@ -153,12 +156,19 @@ update msg model =
                         ( model, Cmd.none )
 
             else
-                ( { model
-                    | displayToast =
+                let
+                    newDisplayToast =
                         isInputWordCompleted model.inputWord
                             && not (isInputWordValid model.inputWord)
+                in
+                ( { model
+                    | displayToast = newDisplayToast
                   }
-                , Cmd.none
+                , if newDisplayToast then
+                    vibrate ()
+
+                  else
+                    Cmd.none
                 )
 
 
