@@ -51,7 +51,7 @@ type alias Model =
 
 type Msg
     = Character Char
-    | CloseToast Time.Posix
+    | CloseToast
     | Backspace
     | SubmitInputWord
     | NoOp
@@ -69,10 +69,14 @@ init _ =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.batch
         [ onKeyUp keyDecoder
-        , Time.every 5000 CloseToast
+        , if model.displayToast then
+            Time.every 1000 (\_ -> CloseToast)
+
+          else
+            Sub.none
         ]
 
 
@@ -108,7 +112,7 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        CloseToast _ ->
+        CloseToast ->
             ( { model | displayToast = False }, Cmd.none )
 
         Character char ->
