@@ -11,7 +11,7 @@ import Board
         )
 import Browser
 import Browser.Events exposing (onKeyUp)
-import Html exposing (Html, button, div, h1, header, text)
+import Html exposing (Html, div, h1, header, text)
 import Html.Attributes exposing (class)
 import Html.Events as HtmlEvents
 import InputWord
