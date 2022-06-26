@@ -2,8 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-.iteration-one {
-  animation-iteration-count: 1;
+body {
+  user-select: none;
+}
+
+.text-shadow {
+  text-shadow: 0px 3px 0px rgb(34 197 94 / 50%);
 }
 
 @keyframes pop {
@@ -19,10 +23,16 @@
   animation: pop 0.2s ease-out 1;
 }
 
-body {
-  user-select: none;
+@keyframes fade-out {
+  0% {
+    opacity: 0;
+    display: none;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
-.text-shadow {
-  text-shadow: 0px 3px 0px rgb(34 197 94 / 50%);
+.animate-fade-out {
+  animation: fade-out 0.2s ease-out 1;
 }

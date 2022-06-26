@@ -11,8 +11,8 @@ import Board
         )
 import Browser
 import Browser.Events exposing (onKeyUp)
-import Html exposing (Html, div, h1, header, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, div, h1, header, p, span, strong, text)
+import Html.Attributes exposing (class, id)
 import Html.Events as HtmlEvents
 import InputWord
     exposing
@@ -52,6 +52,9 @@ main =
 port vibrate : () -> Cmd msg
 
 
+port fadeStartModalOut : () -> Cmd msg
+
+
 
 -- MODEL
 
@@ -61,6 +64,7 @@ type alias Model =
     , inputWord : InputWord
     , secretWord : String
     , displayToast : Bool
+    , gameStarted : Bool
     }
 
 
@@ -70,6 +74,7 @@ init _ =
       , inputWord = initialInputWord
       , secretWord = "cigar"
       , displayToast = False
+      , gameStarted = False
       }
     , Cmd.none
     )
@@ -85,11 +90,19 @@ type Msg
     | Backspace
     | SubmitInputWord
     | NoOp
+    | StartGame
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        StartGame ->
+            ( { model
+                | gameStarted = True
+              }
+            , fadeStartModalOut ()
+            )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -102,7 +115,7 @@ update msg model =
                 gameCompleted =
                     findFirstEmptyRow model.board == Nothing
             in
-            if not gameCompleted then
+            if not gameCompleted && model.gameStarted then
                 ( { model
                     | inputWord = addCharToInputWord char model.inputWord
                   }
@@ -207,6 +220,7 @@ view model =
             , viewKeyboard model.board
             ]
         , viewToast model.displayToast
+        , viewStartModal
         ]
 
 
@@ -460,3 +474,60 @@ viewToast displayToast =
             ("fixed top-[55vh] left-1/2 -translate-x-1/2 bg-gray-500 py-2 px-4 text-white rounded-lg shadow-lg w-fit transition-all " ++ visible)
         ]
         [ text "NOT IN WORD LIST" ]
+
+
+viewStartModal : Html Msg
+viewStartModal =
+    div
+        [ id "modal"
+        , class "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white shadow-2xl py-8 px-10 w-[600px]"
+        ]
+        [ p [ class "mb-2" ]
+            [ span []
+                [ text "Guess the "
+                ]
+            , strong [] [ text "WORDLE" ]
+            , span [] [ text " in six tries." ]
+            ]
+        , p [ class "mb-2" ]
+            [ text "Each guess must be a valid five-letter word. Hit the enter button to submit." ]
+        , h1 [ class "my-4 pt-2 border-t" ] [ text "Examples" ]
+        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[50%]" ]
+            [ viewLetter (Correct 'W')
+            , viewLetter (Incorrect 'E')
+            , viewLetter (Incorrect 'A')
+            , viewLetter (Incorrect 'R')
+            , viewLetter (Incorrect 'Y')
+            ]
+        , p [ class "mb-2" ]
+            [ span [] [ text "The letter " ]
+            , strong [] [ text "W" ]
+            , span [] [ text " is in the word and in the correct spot." ]
+            ]
+        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[50%]" ]
+            [ viewLetter (Incorrect 'P')
+            , viewLetter (Misplaced 'I')
+            , viewLetter (Incorrect 'L')
+            , viewLetter (Incorrect 'L')
+            , viewLetter (Incorrect 'S')
+            ]
+        , p [ class "mb-2" ]
+            [ span [] [ text "The letter " ]
+            , strong [] [ text "I" ]
+            , span [] [ text " is in the word but in the wrong spot." ]
+            ]
+        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[50%]" ]
+            [ viewLetter (Incorrect 'V')
+            , viewLetter (Incorrect 'A')
+            , viewLetter (Incorrect 'G')
+            , viewLetter (Incorrect 'U')
+            , viewLetter (Incorrect 'E')
+            ]
+        , p [ class "mb-2 pb-2 border-b" ]
+            [ text "All of the letters are not in the word." ]
+        , div
+            [ class "px-4 py-2 bg-green-500 text-white rounded-sm text-center cursor-pointer active:scale-90"
+            , HtmlEvents.onClick StartGame
+            ]
+            [ text "START GAME" ]
+        ]
