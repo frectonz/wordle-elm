@@ -246,7 +246,7 @@ viewBoard model =
                                                 ""
                                        )
                         in
-                        div [ class ("bg-white text-2xl shadow-sm shadow-green-500 flex justify-center items-center rounded-md " ++ animationClass) ]
+                        div [ class ("bg-white text-2xl border border-green-500 flex justify-center items-center " ++ animationClass) ]
                             [ text
                                 (case input of
                                     Filled c ->
@@ -264,14 +264,33 @@ viewBoard model =
                     (\row ->
                         row |> List.all (\x -> x == Empty)
                     )
+                |> List.indexedMap
+                    (\index row ->
+                        if index == 0 then
+                            []
+
+                        else
+                            row
+                    )
                 |> flatten2D
                 |> List.map viewLetter
+
+        _ =
+            Debug.log "next" (List.length next)
+
+        _ =
+            Debug.log "previous" (List.length previous)
     in
     div
         [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 p-2 w-[320px] h-[320px] sm:w-[400px] sm:h-[400px]"
         ]
         (previous
-            ++ currentRowHtml
+            ++ (if List.length previous == 30 then
+                    []
+
+                else
+                    currentRowHtml
+               )
             ++ next
         )
 
@@ -291,11 +310,11 @@ viewLetter letter =
                     "bg-gray-500 text-white"
 
                 Empty ->
-                    "bg-white shadow-sm shadow-green-500"
+                    "bg-white border"
     in
     div
         [ class
-            ("text-2xl flex justify-center items-center rounded-md " ++ bgColor)
+            ("text-2xl flex justify-center items-center " ++ bgColor)
         ]
         [ text
             (case letter of
@@ -408,7 +427,7 @@ viewKeyboardLetter board ( letter, msg ) =
                     "bg-gray-500 text-white"
 
                 Empty ->
-                    "bg-white text-black"
+                    "bg-white text-black border"
 
         size =
             if String.length letter == 1 then
@@ -418,7 +437,7 @@ viewKeyboardLetter board ( letter, msg ) =
                 "col-span-2"
     in
     div
-        [ class ("sm:text-sm text-xs md:p-5 p-3 shadow-sm shadow-green-500 flex justify-center items-center rounded-xl overflow-hidden pop-on-active active:scale-75 " ++ bgColor ++ " " ++ size)
+        [ class ("sm:text-sm text-xs md:p-5 p-3 flex justify-center items-center pop-on-active active:scale-75 " ++ bgColor ++ " " ++ size)
         , HtmlEvents.onClick msg
         ]
         [ text letter ]
