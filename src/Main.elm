@@ -98,6 +98,7 @@ update msg model =
 
         Character char ->
             let
+                gameCompleted : Bool
                 gameCompleted =
                     findFirstEmptyRow model.board == Nothing
             in
@@ -135,6 +136,7 @@ update msg model =
 
             else
                 let
+                    newDisplayToast : Bool
                     newDisplayToast =
                         isInputWordCompleted model.inputWord
                             && not (isInputWordValid model.inputWord)
@@ -218,9 +220,11 @@ viewHeader =
 viewBoard : Model -> Html Msg
 viewBoard model =
     let
+        boardList : List (List Letter)
         boardList =
             boardToList model.board
 
+        previous : List (Html Msg)
         previous =
             boardList
                 |> ListExtra.takeWhile
@@ -228,36 +232,43 @@ viewBoard model =
                 |> flatten2D
                 |> List.map viewLetter
 
+        currentRowHtml : List (Html Msg)
         currentRowHtml =
-            model.inputWord
-                |> Vector5.toIndexedList
-                |> List.map
-                    (\( index, input ) ->
-                        let
-                            animationClass =
-                                Vector5.nextIndex index
-                                    |> Maybe.map (\nextIndex -> Vector5.get nextIndex model.inputWord == Unfilled && input /= Unfilled)
-                                    |> Maybe.withDefault (input /= Unfilled)
-                                    |> (\isLastInput ->
-                                            if isLastInput then
-                                                "animate-pop"
+            if List.length previous == 30 then
+                []
 
-                                            else
-                                                ""
-                                       )
-                        in
-                        div [ class ("bg-white text-2xl border border-green-500 flex justify-center items-center " ++ animationClass) ]
-                            [ text
-                                (case input of
-                                    Filled c ->
-                                        String.fromChar c
+            else
+                model.inputWord
+                    |> Vector5.toIndexedList
+                    |> List.map
+                        (\( index, input ) ->
+                            let
+                                animationClass : String
+                                animationClass =
+                                    Vector5.nextIndex index
+                                        |> Maybe.map (\nextIndex -> Vector5.get nextIndex model.inputWord == Unfilled && input /= Unfilled)
+                                        |> Maybe.withDefault (input /= Unfilled)
+                                        |> (\isLastInput ->
+                                                if isLastInput then
+                                                    "animate-pop"
 
-                                    Unfilled ->
-                                        " "
-                                )
-                            ]
-                    )
+                                                else
+                                                    ""
+                                           )
+                            in
+                            div [ class ("bg-white text-2xl border border-green-500 flex justify-center items-center " ++ animationClass) ]
+                                [ text
+                                    (case input of
+                                        Filled c ->
+                                            String.fromChar c
 
+                                        Unfilled ->
+                                            " "
+                                    )
+                                ]
+                        )
+
+        next : List (Html Msg)
         next =
             boardList
                 |> ListExtra.takeWhileRight
@@ -274,30 +285,17 @@ viewBoard model =
                     )
                 |> flatten2D
                 |> List.map viewLetter
-
-        _ =
-            Debug.log "next" (List.length next)
-
-        _ =
-            Debug.log "previous" (List.length previous)
     in
     div
         [ class "grid grid-cols-5 grid-rows-6 my-10 mx-auto gap-4 p-2 w-[320px] h-[320px] sm:w-[400px] sm:h-[400px]"
         ]
-        (previous
-            ++ (if List.length previous == 30 then
-                    []
-
-                else
-                    currentRowHtml
-               )
-            ++ next
-        )
+        (previous ++ currentRowHtml ++ next)
 
 
 viewLetter : Letter -> Html Msg
 viewLetter letter =
     let
+        bgColor : String
         bgColor =
             case letter of
                 Misplaced _ ->
@@ -382,7 +380,8 @@ viewKeyboard board =
 viewKeyboardLetter : Board -> ( String, Msg ) -> Html Msg
 viewKeyboardLetter board ( letter, msg ) =
     let
-        t =
+        letterStatus : Letter
+        letterStatus =
             board
                 |> boardToList
                 |> flatten2D
@@ -415,8 +414,9 @@ viewKeyboardLetter board ( letter, msg ) =
                     )
                     Empty
 
+        bgColor : String
         bgColor =
-            case t of
+            case letterStatus of
                 Misplaced _ ->
                     "bg-yellow-500 text-white"
 
@@ -429,7 +429,8 @@ viewKeyboardLetter board ( letter, msg ) =
                 Empty ->
                     "bg-white text-black border"
 
-        size =
+        letterSize : String
+        letterSize =
             if String.length letter == 1 then
                 "col-span-1"
 
@@ -437,7 +438,7 @@ viewKeyboardLetter board ( letter, msg ) =
                 "col-span-2"
     in
     div
-        [ class ("sm:text-sm text-xs md:p-5 p-3 flex justify-center items-center pop-on-active active:scale-75 " ++ bgColor ++ " " ++ size)
+        [ class ("sm:text-sm text-xs md:p-5 p-3 flex justify-center items-center pop-on-active active:scale-75 " ++ bgColor ++ " " ++ letterSize)
         , HtmlEvents.onClick msg
         ]
         [ text letter ]
@@ -446,6 +447,7 @@ viewKeyboardLetter board ( letter, msg ) =
 viewToast : Bool -> Html Msg
 viewToast displayToast =
     let
+        visible : String
         visible =
             if displayToast then
                 "visible"
