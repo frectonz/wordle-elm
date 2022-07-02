@@ -36,3 +36,12 @@ body {
 .animate-fade-out {
   animation: fade-out 0.2s ease-out 1;
 }
+
+#backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.1);
+}

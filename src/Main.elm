@@ -478,56 +478,59 @@ viewToast displayToast =
 
 viewStartModal : Html Msg
 viewStartModal =
-    div
-        [ id "modal"
-        , class "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white shadow-2xl py-8 px-4 w-[95vw] sm:w-[500px] md:w-[600px] text-sm sm:text-base"
-        ]
-        [ p [ class "mb-2" ]
-            [ span []
-                [ text "Guess the "
-                ]
-            , strong [] [ text "WORDLE" ]
-            , span [] [ text " in six tries." ]
-            ]
-        , p [ class "mb-2" ]
-            [ text "Each guess must be a valid five-letter word. Hit the enter button to submit." ]
-        , h1 [ class "my-4 pt-2 border-t" ] [ text "Examples" ]
-        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
-            [ viewLetter (Correct 'W')
-            , viewLetter (Incorrect 'E')
-            , viewLetter (Incorrect 'A')
-            , viewLetter (Incorrect 'R')
-            , viewLetter (Incorrect 'Y')
-            ]
-        , p [ class "mb-2" ]
-            [ span [] [ text "The letter " ]
-            , strong [] [ text "W" ]
-            , span [] [ text " is in the word and in the correct spot." ]
-            ]
-        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
-            [ viewLetter (Incorrect 'P')
-            , viewLetter (Misplaced 'I')
-            , viewLetter (Incorrect 'L')
-            , viewLetter (Incorrect 'L')
-            , viewLetter (Incorrect 'S')
-            ]
-        , p [ class "mb-2" ]
-            [ span [] [ text "The letter " ]
-            , strong [] [ text "I" ]
-            , span [] [ text " is in the word but in the wrong spot." ]
-            ]
-        , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
-            [ viewLetter (Incorrect 'V')
-            , viewLetter (Incorrect 'A')
-            , viewLetter (Incorrect 'G')
-            , viewLetter (Incorrect 'U')
-            , viewLetter (Incorrect 'E')
-            ]
-        , p [ class "mb-2 pb-2 border-b" ]
-            [ text "All of the letters are not in the word." ]
+    div []
+        [ div [ id "backdrop" ] []
         , div
-            [ class "px-4 py-2 bg-green-500 text-white rounded-sm text-center cursor-pointer active:scale-90"
-            , HtmlEvents.onClick StartGame
+            [ id "modal"
+            , class "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white shadow-2xl py-8 px-4 w-[95vw] sm:w-[500px] md:w-[600px] text-sm sm:text-base"
             ]
-            [ text "START GAME" ]
+            [ p [ class "mb-2" ]
+                [ span []
+                    [ text "Guess the "
+                    ]
+                , strong [] [ text "WORDLE" ]
+                , span [] [ text " in six tries." ]
+                ]
+            , p [ class "mb-2" ]
+                [ text "Each guess must be a valid five-letter word. Hit the enter button to submit." ]
+            , h1 [ class "my-4 pt-2 border-t" ] [ text "Examples" ]
+            , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
+                [ viewLetter (Correct 'W')
+                , viewLetter (Incorrect 'E')
+                , viewLetter (Incorrect 'A')
+                , viewLetter (Incorrect 'R')
+                , viewLetter (Incorrect 'Y')
+                ]
+            , p [ class "mb-2" ]
+                [ span [] [ text "The letter " ]
+                , strong [] [ text "W" ]
+                , span [] [ text " is in the word and in the correct spot." ]
+                ]
+            , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
+                [ viewLetter (Incorrect 'P')
+                , viewLetter (Misplaced 'I')
+                , viewLetter (Incorrect 'L')
+                , viewLetter (Incorrect 'L')
+                , viewLetter (Incorrect 'S')
+                ]
+            , p [ class "mb-2" ]
+                [ span [] [ text "The letter " ]
+                , strong [] [ text "I" ]
+                , span [] [ text " is in the word but in the wrong spot." ]
+                ]
+            , div [ class "grid grid-cols-5 gap-2 h-10 mb-2 w-[200px]" ]
+                [ viewLetter (Incorrect 'V')
+                , viewLetter (Incorrect 'A')
+                , viewLetter (Incorrect 'G')
+                , viewLetter (Incorrect 'U')
+                , viewLetter (Incorrect 'E')
+                ]
+            , p [ class "mb-2 pb-2 border-b" ]
+                [ text "All of the letters are not in the word." ]
+            , div
+                [ class "px-4 py-2 bg-green-500 text-white rounded-sm text-center cursor-pointer active:scale-90"
+                , HtmlEvents.onClick StartGame
+                ]
+                [ text "START GAME" ]
+            ]
         ]
